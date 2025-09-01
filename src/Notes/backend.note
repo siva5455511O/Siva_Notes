@@ -1,0 +1,187 @@
+   
+   1st step :
+        installation
+            npm init -y
+           npm i express nodemon mongoose
+
+   2nd step:
+     1. require express and save to variable name.app 
+     2. will you use app methods use this
+              app.use(express.json())
+
+    
+   3d step:
+    1. create server 
+     app.listen(final_port, ()=>{
+           console.log("server running on port");
+    
+          })
+    2. install dotenv :
+         const dotenv = require("dotenv");
+
+         dotenv.config();
+
+        this function working on -   process
+
+   4th step:
+      connect to data base
+     
+    1. require mongoose
+    2.mongoose.connect("mongodb://localhost:27017/pgDatas").then(()=>{
+      
+            console.log("databass is connect");
+      
+       }).catch(()=>{
+         console.log("databass in not connect");
+    
+       })
+
+   bcrypt password:
+         install - npm i bcrypt
+         require to bcrypt
+
+        use the method:
+            const hassPassword = await bcrypt.hash(req.body.password, 7);
+  
+   allowed one email:
+         const email = await studentSchema.findOne({ email: req.body.email });
+
+         if (email) return res.json("email alredy exist");
+
+   password check:
+       require bcrypt 
+       
+       const passwordCheck = await bcrypt.compare(req.body.password, User.password);
+
+        if (!passwordCheck) return res.json("enter valid password");
+ 
+   create token :
+      install npm i jsonwebtoken
+
+      require jsonwpbtoken
+
+      const token = await jwt.sign({ email: User.email }, process.env.TOKEN);
+
+
+
+
+
+
+   image uplode mathode:
+
+      const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uplode");
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + file.originalname;
+    cb(null, uniqueSuffix);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+app.post("/uplodeData", upload.single("img"), async (req, res) => {
+  if (!req.file) return res.json("file not uplode");
+
+  try {
+    const { name, email, password } = req.body;
+
+    const imgpath = req.file.path;
+
+    const hassPassword = await bcrypt.hash(req.body.password, 7);
+
+    const allDatas = new studentSchema({
+      name,
+      email,
+      password: hassPassword,
+      imageUrl: imgpath,
+    });
+
+    const saveUser = await allDatas.save();
+
+    res.json({ msg: "image uplode success", saveUser });
+  } catch (err) {
+    console.log(err);
+  }
+});
+    
+ // password reset
+
+
+// password reset methode
+   
+            adding to schema file -------  resetPasswordToken:String,  resetPasswordExpire:String,
+
+
+app.post("/passwordResetRequest", async (req, res) => {
+  // step1
+
+  const user = await UserSchema.findOne({ email: req.body.email });
+
+  // console.log(user);
+
+  if (!user) return res.json("email not found");
+
+  // rendom number create and save to database
+
+  const fixedToken = Math.floor(Math.random() * 500000);
+
+  user.resetPasswordToken = fixedToken;
+
+  user.resetPasswordExpire = Date.now() + 3600000;
+
+  await user.save();
+
+  // step2 - install nodemailer
+
+  // add admin email and poassword
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  //  send the random number to user
+
+  const mailOptions = {
+    from: process.env.EMAIL,
+    to: user.email,
+    subject: "passord reset requst ",
+    text: `click the below to reset password ${fixedToken}`,
+  };
+
+  transporter.sendMail(mailOptions, (err) => {
+    if (err) {
+      console.log(err);
+
+      return res.json({ msg: "error sendig mail" });
+    } else {
+      res.json({ msg: "password reset email send" });
+    }
+  });
+});
+
+// 3d step chage the new password and save to databass
+
+app.post("/resetPassword/:randamnumber", async (req, res) => {
+  const { randamnumber } = req.params;
+
+  const user = await UserSchema.findOne({
+    resetPasswordToken: randamnumber,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) return res.json({ msg: "token not valid or expired" });
+
+  user.password = await bcrypt.hash(req.body.password, 7);
+  // (used to  null or undefined)
+  user.resetPasswordToken = null;
+  user.resetPasswordExpire = null;
+
+  await user.save();
+
+  res.json({ msg: "your password update succesfully" });
+});

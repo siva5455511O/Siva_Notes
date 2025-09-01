@@ -1,0 +1,23 @@
+AWS Initial Setup
+
+sudo apt-get update
+sudo apt-get upgrade -y
+
+
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+git clone "fdf"
+cd app
+npm install
+npm start
+
+
+
+ pm2  Method ( 
+
+cd..
+
+sudo npm install -g pm2@latest
+cd app
+pm2 start --name kbv npm -- start ) --- replace kvb into project name
